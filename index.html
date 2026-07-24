@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Fees Invoice & Receipt Portal</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;      /* Deep Royal Blue */
+      --secondary: #475569;    /* Slate Gray */
+      --accent: #16a34a;       /* Green for Paid */
+      --warning: #d97706;      /* Amber for Partial */
+      --danger: #dc2626;       /* Red for Unpaid */
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: #1e293b;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Auth Screen */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+
+    .login-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--secondary);
+      margin-bottom: 20px;
+    }
+
+    /* App Layout */
+    .app-container {
+      display: none; /* Revealed on login */
+      width: 100%;
+      max-width: 900px;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 850px) {
+      .app-container {
+        grid-template-columns: 360px 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--secondary);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      background: #fff;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--secondary);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    /* Invoice Preview */
+    .invoice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+
+    .school-name {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-badge.paid { background: #dcfce7; color: var(--accent); }
+    .status-badge.partial { background: #fef3c7; color: var(--warning); }
+    .status-badge.unpaid { background: #fee2e2; color: var(--danger); }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .meta-item span {
+      display: block;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--secondary);
+      text-transform: uppercase;
+    }
+
+    .meta-item p {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Table Grid */
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 12px;
+    }
+
+    .invoice-table th {
+      background: #f1f5f9;
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .invoice-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    .table-actions {
+      text-align: right;
+    }
+
+    .del-btn {
+      background: transparent;
+      color: var(--danger);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 2px 6px;
+      width: auto;
+    }
+
+    /* Summary Calculation */
+    .summary-box {
+      margin-left: auto;
+      width: 100%;
+      max-width: 280px;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--secondary);
+    }
+
+    .summary-row.total {
+      border-top: 2px solid var(--primary);
+      padding-top: 8px;
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    /* Database List */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .control-panel, .history-panel, .login-overlay, .del-btn, .action-buttons {
+        display: none !important;
+      }
+      .app-container {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+      }
+      .card {
+        border: none;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Local Auth Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-title">School Financial Portal</div>
+      <div id="loginSubtitle" class="login-subtitle">Enter passcode to access terminal</div>
+      <div class="form-group">
+        <input type="password" id="passcodeField" placeholder="Enter PIN / Passcode" style="text-align: center; font-size: 16px;">
+      </div>
+      <button onclick="handleAuth()">Unlock Portal</button>
+    </div>
+  </div>
+
+  <div id="appContainer" class="app-container">
+    
+    <!-- Controls Section -->
+    <div class="control-panel">
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="border: none; margin: 0; padding: 0;">Student Info</h3>
+          <button onclick="logOut()" class="btn-secondary" style="width: auto; padding: 4px 8px; font-size: 10px;">Logout</button>
+        </div>
+
+        <div class="form-group">
+          <label>Student Full Name</label>
+          <input type="text" id="inStudentName" value="Alex Johnson" oninput="updateInvoiceMeta()">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Student ID</label>
+            <input type="text" id="inStudentId" value="STU-2026-089" oninput="updateInvoiceMeta()">
+          </div>
+          <div class="form-group">
+            <label>Grade / Class</label>
+            <input type="text" id="inGrade" value="Grade 10-A" oninput="updateInvoiceMeta()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Academic Session</label>
+            <input type="text" id="inSession" value="2025/2026" oninput="updateInvoiceMeta()">
+          </div>
+          <div class="form-group">
+            <label>Term</label>
+            <select id="inTerm" onchange="updateInvoiceMeta()">
+              <option value="1st Term">1st Term</option>
+              <option value="2nd Term" selected>2nd Term</option>
+              <option value="3rd Term">3rd Term</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <h3>Add Fee Breakdown Item</h3>
+        <div class="form-group">
+          <label>Item Description</label>
+          <input type="text" id="inItemDesc" placeholder="e.g. Tuition Fee, Uniform, Books">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount ($)</label>
+            <input type="number" id="inItemAmount" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="inItemCat">
+              <option value="Fee">Standard Fee</option>
+              <option value="Discount">Discount (-)</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="addFeeItem()">Add Item</button>
+      </div>
+
+      <div class="card">
+        <h3>Payment Processing</h3>
+        <div class="form-group">
+          <label>Amount Paid So Far ($)</label>
+          <input type="number" id="inAmountPaid" value="0" min="0" oninput="renderInvoice()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Document Section -->
+    <div>
+      <div class="card" id="invoiceArea">
+        <div class="invoice-header">
+          <div>
+            <div class="school-name">St. Jude Academy</div>
+            <p style="font-size: 11px; color: var(--secondary);">Excellence in Education & Character</p>
+          </div>
+          <div style="text-align: right;">
+            <span id="statusBadge" class="status-badge unpaid">Unpaid</span>
+            <p id="docRefNo" style="font-size: 11px; font-weight: 800; color: var(--secondary); margin-top: 6px;">INV-#883920</p>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span>Student Name</span>
+            <p id="lblStudentName">Alex Johnson</p>
+          </div>
+          <div class="meta-item">
+            <span>Student ID</span>
+            <p id="lblStudentId">STU-2026-089</p>
+          </div>
+          <div class="meta-item">
+            <span>Class / Session</span>
+            <p id="lblClassSession">Grade 10-A | 2025/2026</p>
+          </div>
+          <div class="meta-item">
+            <span>Term / Issue Date</span>
+            <p id="lblTermDate">2nd Term | Jul 24, 2026</p>
+          </div>
+        </div>
+
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Description</th>
+              <th style="text-align: right;">Amount</th>
+              <th class="table-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="feeItemsTable">
+            <!-- Dynamic Rows -->
+          </tbody>
+        </table>
+
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Total Payable:</span>
+            <span id="lblTotalPayable">$0.00</span>
+          </div>
+          <div class="summary-row">
+            <span>Amount Paid:</span>
+            <span id="lblAmountPaid">$0.00</span>
+          </div>
+          <div class="summary-row total">
+            <span>Balance Due:</span>
+            <span id="lblBalanceDue">$0.00</span>
+          </div>
+        </div>
+
+        <div class="action-buttons" style="display: flex; gap: 10px;">
+          <button onclick="saveInvoiceToDB()" style="background: var(--accent);">Save Record</button>
+          <button onclick="window.print()" class="btn-secondary">Print / Export PDF</button>
+        </div>
+      </div>
+
+      <!-- History Database Card -->
+      <div class="card history-panel" style="margin-top: 20px;">
+        <h3>Saved Student Invoices Database</h3>
+        <div id="historyList" class="history-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let feeItems = [
+      { id: 1, desc: "2nd Term Tuition Fee", amount: 1200, type: "Fee" },
+      { id: 2, desc: "Science Lab & Textbooks", amount: 250, type: "Fee" },
+      { id: 3, desc: "Academic Excellence Scholarship", amount: 150, type: "Discount" }
+    ];
+
+    window.onload = function() {
+      checkAuthStatus();
+      updateInvoiceMeta();
+      renderInvoice();
+      loadDatabase();
+
+      document.getElementById('passcodeField').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAuth();
+      });
+    }
+
+    /* Local Authentication */
+    function checkAuthStatus() {
+      const stored = localStorage.getItem('schoolPortalPasscode');
+      const sub = document.getElementById('loginSubtitle');
+      if (!stored) {
+        sub.innerText = "First-time Setup: Create a local PIN";
+      } else {
+        sub.innerText = "Enter passcode to access portal";
+      }
+    }
+
+    function handleAuth() {
+      const field = document.getElementById('passcodeField');
+      const entered = field.value.trim();
+      const stored = localStorage.getItem('schoolPortalPasscode');
+
+      if (!entered) return;
+
+      if (!stored) {
+        localStorage.setItem('schoolPortalPasscode', entered);
+        sessionStorage.setItem('isSchoolAppAuth', 'true');
+        unlockApp();
+      } else if (entered === stored) {
+        sessionStorage.setItem('isSchoolAppAuth', 'true');
+        unlockApp();
+      } else {
+        alert("Incorrect PIN");
+        field.value = '';
+      }
+    }
+
+    function unlockApp() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'grid';
+    }
+
+    function logOut() {
+      sessionStorage.removeItem('isSchoolAppAuth');
+      location.reload();
+    }
+
+    if (sessionStorage.getItem('isSchoolAppAuth') === 'true') {
+      setTimeout(unlockApp, 50);
+    }
+
+    /* Meta Details sync */
+    function updateInvoiceMeta() {
+      document.getElementById('lblStudentName').innerText = document.getElementById('inStudentName').value || 'N/A';
+      document.getElementById('lblStudentId').innerText = document.getElementById('inStudentId').value || 'N/A';
+      
+      const grade = document.getElementById('inGrade').value;
+      const session = document.getElementById('inSession').value;
+      document.getElementById('lblClassSession').innerText = `${grade} | ${session}`;
+
+      const term = document.getElementById('inTerm').value;
+      const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('lblTermDate').innerText = `${term} | ${today}`;
+    }
+
+    /* Core Fee Calculation Engine */
+    function renderInvoice() {
+      const tableBody = document.getElementById('feeItemsTable');
+      tableBody.innerHTML = '';
+
+      let totalPayable = 0;
+
+      feeItems.forEach((item, idx) => {
+        const isDiscount = item.type === "Discount";
+        const val = isDiscount ? -Math.abs(item.amount) : Math.abs(item.amount);
+        totalPayable += val;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHTML(item.desc)} ${isDiscount ? '<strong style="color:var(--accent);">(Scholarship/Discount)</strong>' : ''}</td>
+          <td style="text-align: right;">${val < 0 ? '-' : ''}$${Math.abs(val).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+          <td class="table-actions"><button class="del-btn" onclick="removeFeeItem(${item.id})">✕</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      if (totalPayable < 0) totalPayable = 0;
+
+      const amountPaid = parseFloat(document.getElementById('inAmountPaid').value) || 0;
+      const balanceDue = totalPayable - amountPaid;
+
+      document.getElementById('lblTotalPayable').innerText = `$${totalPayable.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      document.getElementById('lblAmountPaid').innerText = `$${amountPaid.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+      document.getElementById('lblBalanceDue').innerText = `$${(balanceDue > 0 ? balanceDue : 0).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+      // Update Status Badge
+      const badge = document.getElementById('statusBadge');
+      if (amountPaid >= totalPayable && totalPayable > 0) {
+        badge.className = 'status-badge paid';
+        badge.innerText = 'Paid in Full';
+      } else if (amountPaid > 0 && amountPaid < totalPayable) {
+        badge.className = 'status-badge partial';
+        badge.innerText = 'Partially Paid';
+      } else {
+        badge.className = 'status-badge unpaid';
+        badge.innerText = 'Unpaid';
+      }
+    }
+
+    function addFeeItem() {
+      const desc = document.getElementById('inItemDesc').value.trim();
+      const amount = parseFloat(document.getElementById('inItemAmount').value);
+      const cat = document.getElementById('inItemCat').value;
+
+      if (!desc || isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid description and positive amount.");
+        return;
+      }
+
+      feeItems.push({ id: Date.now(), desc: desc, amount: amount, type: cat });
+      document.getElementById('inItemDesc').value = '';
+      document.getElementById('inItemAmount').value = '0';
+      renderInvoice();
+    }
+
+    function removeFeeItem(id) {
+      feeItems = feeItems.filter(i => i.id !== id);
+      renderInvoice();
+    }
+
+    /* Database Save & Load Functions */
+    function saveInvoiceToDB() {
+      const db = JSON.parse(localStorage.getItem('schoolInvoicesDB') || '[]');
+      const studentName = document.getElementById('lblStudentName').innerText;
+      const refNo = document.getElementById('docRefNo').innerText;
+
+      const record = {
+        id: Date.now().toString(),
+        refNo: refNo,
+        studentName: studentName,
+        studentId: document.getElementById('inStudentId').value,
+        grade: document.getElementById('inGrade').value,
+        session: document.getElementById('inSession').value,
+        term: document.getElementById('inTerm').value,
+        amountPaid: parseFloat(document.getElementById('inAmountPaid').value) || 0,
+        items: [...feeItems]
+      };
+
+      db.push(record);
+      localStorage.setItem('schoolInvoicesDB', JSON.stringify(db));
+      loadDatabase();
+      alert(`Saved invoice record for ${studentName}!`);
+    }
+
+    function loadDatabase() {
+      const db = JSON.parse(localStorage.getItem('schoolInvoicesDB') || '[]');
+      const container = document.getElementById('historyList');
+      container.innerHTML = '';
+
+      if (db.length === 0) {
+        container.innerHTML = `<p style="font-size:12px; color:var(--secondary); font-style:italic;">No saved records.</p>`;
+        return;
+      }
+
+      db.reverse().forEach(rec => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div>
+            <strong>${escapeHTML(rec.studentName)}</strong> (${rec.studentId})
+            <div style="font-size:10px; color:var(--secondary);">${rec.term} | ${rec.session}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button onclick="restoreRecord('${rec.id}')" style="padding:4px 8px; font-size:10px; width:auto;">Load</button>
+            <button onclick="deleteRecord('${rec.id}')" class="btn-secondary" style="padding:4px 8px; font-size:10px; width:auto; color:var(--danger);">Delete</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function restoreRecord(id) {
+      const db = JSON.parse(localStorage.getItem('schoolInvoicesDB') || '[]');
+      const rec = db.find(r => r.id === id);
+      if (!rec) return;
+
+      document.getElementById('inStudentName').value = rec.studentName;
+      document.getElementById('inStudentId').value = rec.studentId;
+      document.getElementById('inGrade').value = rec.grade;
+      document.getElementById('inSession').value = rec.session;
+      document.getElementById('inTerm').value = rec.term;
+      document.getElementById('inAmountPaid').value = rec.amountPaid;
+
+      feeItems = rec.items;
+      updateInvoiceMeta();
+      renderInvoice();
+    }
+
+    function deleteRecord(id) {
+      if (!confirm("Are you sure you want to remove this student record?")) return;
+      let db = JSON.parse(localStorage.getItem('schoolInvoicesDB') || '[]');
+      db = db.filter(r => r.id !== id);
+      localStorage.setItem('schoolInvoicesDB', JSON.stringify(db));
+      loadDatabase();
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+  </script>
+</body>
+</html>
